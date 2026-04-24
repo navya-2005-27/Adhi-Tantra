@@ -52,6 +52,7 @@ type FormData = {
 
 const FORMSUBMIT_TARGET = "https://formsubmit.co/adhitantra786@gmail.com";
 const FORMSUBMIT_IFRAME_NAME = "formsubmit_hidden_iframe";
+const ORGANIZER_EMAIL = "adhitantra786@gmail.com";
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
@@ -115,40 +116,27 @@ const sendLeadConfirmationEmail = async (leadEmail: string, teamName: string) =>
     throw new Error('EMAILJS_NOT_CONFIGURED');
   }
 
-  const requestBody = {
-    service_id: EMAILJS_SERVICE_ID,
-    template_id: EMAILJS_TEMPLATE_ID,
-    user_id: EMAILJS_PUBLIC_KEY,
-    template_params: {
-      to_email: leadEmail,
-      team_name: teamName,
-      message: CONFIRMATION_MESSAGE,
-      reply_to: 'adhitantra786@gmail.com',
+  const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  };
-
-  const trySend = async () => {
-    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    body: JSON.stringify({
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: EMAILJS_TEMPLATE_ID,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        to_email: leadEmail,
+        team_name: teamName,
+        message: CONFIRMATION_MESSAGE,
+        reply_to: ORGANIZER_EMAIL,
       },
-      body: JSON.stringify(requestBody),
-    });
+    }),
+  });
 
-    if (!response.ok) {
-      const details = await response.text();
-      throw new Error(`EMAILJS_SEND_FAILED: ${details || response.statusText}`);
-    }
-  };
-
-  try {
-    await trySend();
-  } catch (firstErr) {
-    // Retry once for transient network/provider errors.
-    await trySend().catch(() => {
-      throw firstErr;
-    });
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`EMAILJS_SEND_FAILED: ${details || response.statusText}`);
   }
 };
 
@@ -255,22 +243,20 @@ export default function RegistrationForm() {
         "Payment UTR": formData.paymentUtr,
         "Members (JSON)": JSON.stringify(requiredMembers),
         _subject: `New Hackathon Registration: ${formData.teamName}`,
-        email: leadEmail,
-        _replyto: leadEmail,
-        _autoresponse: CONFIRMATION_MESSAGE,
+        email: ORGANIZER_EMAIL,
+        _replyto: ORGANIZER_EMAIL,
         _template: "table",
       });
 
-      // Then send team lead confirmation email.
       try {
         await sendLeadConfirmationEmail(leadEmail, formData.teamName);
-        setSuccessMsg(`Confirmation email sent to ${leadEmail}.`);
+        setSuccessMsg(`Registration details sent to ${ORGANIZER_EMAIL}. Team lead confirmation sent to ${leadEmail}.`);
       } catch (mailErr) {
         if (mailErr instanceof Error && mailErr.message === 'EMAILJS_NOT_CONFIGURED') {
-          setSuccessMsg('Registration submitted to organizers successfully, but team-lead confirmation mail is not configured yet.');
+          setSuccessMsg(`Registration details sent to ${ORGANIZER_EMAIL}. Team-lead confirmation mail is not configured yet.`);
         } else {
           const details = mailErr instanceof Error ? mailErr.message : 'Unknown EmailJS error';
-          setSuccessMsg(`Registration submitted to organizers successfully. Team-lead confirmation email failed: ${details}`);
+          setSuccessMsg(`Registration details sent to ${ORGANIZER_EMAIL}. Team-lead confirmation failed: ${details}`);
         }
       }
 
