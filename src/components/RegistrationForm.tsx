@@ -241,20 +241,7 @@ export default function RegistrationForm() {
       }
       const requiredMembers = formData.members.slice(0, parseInt(formData.teamSize) - 1);
 
-      try {
-        await sendLeadConfirmationEmail(leadEmail, formData.teamName);
-        setSuccessMsg(`Confirmation email sent to ${leadEmail}.`);
-      } catch (mailErr) {
-        if (mailErr instanceof Error && mailErr.message === 'EMAILJS_NOT_CONFIGURED') {
-          setErrorMsg('Email is not configured. Check VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, and VITE_EMAILJS_PUBLIC_KEY in .env, then restart Vite.');
-        } else {
-          const details = mailErr instanceof Error ? mailErr.message : 'Unknown EmailJS error';
-          setErrorMsg(`Could not send confirmation email to ${leadEmail}. ${details}`);
-        }
-        return;
-      }
-
-      // Submit registration only after confirmation email is sent.
+      // Always submit registration details to organizer inbox.
       await submitViaHiddenForm({
         "Team Name": formData.teamName,
         "College Name": formData.collegeName,
@@ -273,6 +260,19 @@ export default function RegistrationForm() {
         _autoresponse: CONFIRMATION_MESSAGE,
         _template: "table",
       });
+
+      // Then send team lead confirmation email.
+      try {
+        await sendLeadConfirmationEmail(leadEmail, formData.teamName);
+        setSuccessMsg(`Confirmation email sent to ${leadEmail}.`);
+      } catch (mailErr) {
+        if (mailErr instanceof Error && mailErr.message === 'EMAILJS_NOT_CONFIGURED') {
+          setSuccessMsg('Registration submitted to organizers successfully, but team-lead confirmation mail is not configured yet.');
+        } else {
+          const details = mailErr instanceof Error ? mailErr.message : 'Unknown EmailJS error';
+          setSuccessMsg(`Registration submitted to organizers successfully. Team-lead confirmation email failed: ${details}`);
+        }
+      }
 
       setIsSuccess(true);
     } catch (err) {
