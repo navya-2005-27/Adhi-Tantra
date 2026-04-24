@@ -50,8 +50,6 @@ type FormData = {
   paymentUtr: string;
 };
 
-const FORMSUBMIT_TARGET = "https://formsubmit.co/adhitantra786@gmail.com";
-const FORMSUBMIT_IFRAME_NAME = "formsubmit_hidden_iframe";
 const ORGANIZER_EMAIL = "adhitantra786@gmail.com";
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
@@ -60,55 +58,23 @@ const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 const CONFIRMATION_MESSAGE =
   "Your participation in Adhi Tantra is confirmed.\n\nWe will be looking forward to your innovative ideas.\n\nFor any queries, contact:\n\nStudent Coordinators:\n- Kavya GS: +91 9900969105\n- Navyashree SD: +91 9972594105\n\nStaff Coordinators:\n- Mrs. Arpitha K: +91 9880958203\n- Mr. Santhosh BJ: +91 9036156311";
 
-const submitViaHiddenForm = (fields: Record<string, string>) => {
-  return new Promise<void>((resolve) => {
-  let iframe = document.getElementById(FORMSUBMIT_IFRAME_NAME) as HTMLIFrameElement | null;
+const submitOrganizerRegistration = async (fields: Record<string, string>) => {
+  const response = await fetch(`https://formsubmit.co/ajax/${ORGANIZER_EMAIL}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+    },
+    body: (() => {
+      const payload = new FormData();
+      Object.entries(fields).forEach(([key, value]) => payload.append(key, value));
+      return payload;
+    })(),
+  });
 
-  if (!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.name = FORMSUBMIT_IFRAME_NAME;
-    iframe.id = FORMSUBMIT_IFRAME_NAME;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`ORGANIZER_SUBMISSION_FAILED: ${details || response.statusText}`);
   }
-
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = FORMSUBMIT_TARGET;
-  form.target = FORMSUBMIT_IFRAME_NAME;
-  form.style.display = 'none';
-
-  Object.entries(fields).forEach(([key, value]) => {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = key;
-    input.value = value;
-    form.appendChild(input);
-  });
-
-  document.body.appendChild(form);
-
-  let settled = false;
-  const cleanup = () => {
-    if (settled) {
-      return;
-    }
-    settled = true;
-    iframe?.removeEventListener('load', onLoad);
-    if (document.body.contains(form)) {
-      document.body.removeChild(form);
-    }
-    resolve();
-  };
-
-  const onLoad = () => {
-    window.setTimeout(cleanup, 150);
-  };
-
-  iframe.addEventListener('load', onLoad, { once: true });
-  form.submit();
-  window.setTimeout(cleanup, 12000);
-  });
 };
 
 const sendLeadConfirmationEmail = async (leadEmail: string, teamName: string) => {
@@ -230,7 +196,7 @@ export default function RegistrationForm() {
       const requiredMembers = formData.members.slice(0, parseInt(formData.teamSize) - 1);
 
       // Always submit registration details to organizer inbox.
-      await submitViaHiddenForm({
+      await submitOrganizerRegistration({
         "Team Name": formData.teamName,
         "College Name": formData.collegeName,
         "Team Size": formData.teamSize,
@@ -245,6 +211,7 @@ export default function RegistrationForm() {
         _subject: `New Hackathon Registration: ${formData.teamName}`,
         email: ORGANIZER_EMAIL,
         _replyto: ORGANIZER_EMAIL,
+        _captcha: "false",
         _template: "table",
       });
 
