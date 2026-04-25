@@ -68,7 +68,6 @@ function App() {
           </div>
           <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-            <span>{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
           </button>
         </div>
 
