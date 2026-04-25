@@ -55,19 +55,6 @@ function App() {
   const targetDate = isBeforeStart ? registrationStart : registrationEnd;
   const countdown = getCountdownParts(targetDate.getTime() - now.getTime());
 
-  const regProgress = isRegistrationOpen
-    ? Math.min(
-        100,
-        Math.max(
-          0,
-          ((now.getTime() - registrationStart.getTime()) /
-            (registrationEnd.getTime() - registrationStart.getTime())) * 100,
-        ),
-      )
-    : isBeforeStart
-      ? 0
-      : 100;
-
   return (
     <div className="app-container">
       <div className="top-strip">
@@ -131,10 +118,6 @@ function App() {
             </div>
           </div>
 
-          <div className="countdown-progress" role="presentation">
-            <div className="countdown-progress-value" style={{ width: `${regProgress}%` }}></div>
-          </div>
-
           <div className="event-meta-grid">
             <div className="event-meta-chip">
               <CalendarDays size={16} />
@@ -142,7 +125,7 @@ function App() {
             </div>
             <div className="event-meta-chip">
               <CalendarDays size={16} />
-              <span>Hackathon: 7 April</span>
+              <span>Hackathon: 7 May</span>
             </div>
             <div className="event-meta-chip">
               <MapPin size={16} />
